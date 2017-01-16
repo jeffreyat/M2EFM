@@ -25,18 +25,22 @@ should be sorted into some order that is meaningful to your experiment
 	meth = fread(system.file("extdata", "TCGA_BRCA_METH.txt", package="M2EFM"), skip=1, data.table=F)
 	rownames(meth) = meth[,1]
 	meth = meth[,-1]
-	colnames(meth) = unlist(strsplit(readLines(system.file("extdata", "TCGA_BRCA_METH.txt", package="M2EFM"), n=1), "\t"))
+	colnames(meth) = unlist(strsplit(
+		readLines(system.file("extdata", "TCGA_BRCA_METH.txt", package="M2EFM"), n=1), "\t"))
 
 	# Load expression data. 
 	exp = fread(system.file("extdata", "TCGA_BRCA_EXP.txt", package="M2EFM"), skip=1, data.table=F)
 	rownames(exp) = exp[,1]
 	exp = exp[,-1]
-	colnames(exp) = unlist(strsplit(readLines(system.file("extdata", "TCGA_BRCA_EXP.txt", package="M2EFM"), n=1), "\t"))
+	colnames(exp) = unlist(strsplit(
+		readLines(system.file("extdata", "TCGA_BRCA_EXP.txt", package="M2EFM"), n=1), "\t"))
 
 	# Get m2eQTLs.
 	m2e = get_m2eqtls(probe_list=system.file("extdata", "PROBELIST.txt", package="M2EFM"), 
 		meth_data=meth, 
-		exp_data=exp)
+		exp_data=exp,
+		num_trans=550,
+		num_probes=110)
 
 	# Load the main clinical data.
 	clin = read.table(system.file("extdata", "TCGA_BRCA_CLIN.txt", package="M2EFM"), 
@@ -73,8 +77,7 @@ should be sorted into some order that is meaningful to your experiment
 	clin = clin[has_surv,]
 	comb = comb[has_surv,]
 
-	# Build M2EFM model. This function takes a data.frame or matrix, because
-	# the data may not be just expression or methylation (it may be both).
+	# Build M2EFM model. This function takes a data.frame or matrix.
 	m2efm = build_m2efm(comb, surv, clin, covariates, standardize=FALSE)
 ```
 
@@ -99,13 +102,15 @@ gene expression, set integrate_data to FALSE to prevent a second data integratio
 	meth = fread(system.file("extdata", "TCGA_BRCA_METH.txt", package="M2EFM"), skip=1, data.table=F)
 	rownames(meth) = meth[,1]
 	meth = meth[,-1]
-	colnames(meth) = unlist(strsplit(readLines(system.file("extdata", "TCGA_BRCA_METH.txt", package="M2EFM"), n=1), "\t"))
+	colnames(meth) = unlist(strsplit(
+		readLines(system.file("extdata", "TCGA_BRCA_METH.txt", package="M2EFM"), n=1), "\t"))
 
 	# Load expression data. 
 	exp = fread(system.file("extdata", "TCGA_BRCA_EXP.txt", package="M2EFM"), skip=1, data.table=F)
 	rownames(exp) = exp[,1]
 	exp = exp[,-1]
-	colnames(exp) = unlist(strsplit(readLines(system.file("extdata", "TCGA_BRCA_EXP.txt", package="M2EFM"), n=1), "\t"))
+	colnames(exp) = unlist(strsplit(
+		readLines(system.file("extdata", "TCGA_BRCA_EXP.txt", package="M2EFM"), n=1), "\t"))
 
 	# Get m2eQTLs
 	m2e = get_m2eqtls(probe_list=system.file("extdata", "PROBELIST.txt", package="M2EFM"), 
@@ -116,7 +121,8 @@ gene expression, set integrate_data to FALSE to prevent a second data integratio
 	kao = fread(system.file("extdata", "KAO_BRCA_EXP.txt", package="M2EFM"), skip=1, data.table=F)
 	rownames(kao) = kao[,1]
 	kao = kao[,-1]
-	colnames(kao) = unlist(strsplit(readLines(system.file("extdata", "KAO_BRCA_EXP.txt", package="M2EFM"), n=1), "\t"))
+	colnames(kao) = unlist(strsplit(
+		readLines(system.file("extdata", "KAO_BRCA_EXP.txt", package="M2EFM"), n=1), "\t"))
 
 	clin = read.table(system.file("extdata", "TCGA_BRCA_CLIN.txt", package="M2EFM"), 
 		sep="\t", header=T, row.names=1)
