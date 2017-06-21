@@ -55,8 +55,8 @@ get_eqtls = function(loci,
 
 	if(nrow(result$cis$eqtls) > num_cis) {result$cis$eqtls=result$cis$eqtls[1:num_cis,]}
 
-	cis_link = merge(result$cis$eqtls[,c(1,2)], probe_locs, by.x="snps", by.y=by_y)		
-	cis_link = merge(cis_link, gene_locs, by.x="gene", by.y="gene")
+	cis_link = base::merge(result$cis$eqtls[,c(1,2)], probe_locs, by.x="snps", by.y=by_y)		
+	cis_link = base::merge(cis_link, gene_locs, by.x="gene", by.y="gene")
 	#cis_link = cis_link[match(eqtls$result$cis$eqtls$snps, cis_link$snps),]
 	cislinks = paste0(cis_link[,2], cis_link[,1])
 	ciseqtlids = paste0(result$cis$eqtls[,1], result$cis$eqtls[,2])
@@ -66,8 +66,8 @@ get_eqtls = function(loci,
 
 	if(nrow(result$trans$eqtls) > num_trans) {result$trans$eqtls=result$trans$eqtls[1:num_trans,]}
 
-	trans_link = merge(result$trans$eqtls[,c(1,2)], probe_locs, by.x="snps", by.y=by_y)	
-	trans_link = merge(trans_link, gene_locs, by.x="gene", by.y="gene")
+	trans_link = base::merge(result$trans$eqtls[,c(1,2)], probe_locs, by.x="snps", by.y=by_y)	
+	trans_link = base::merge(trans_link, gene_locs, by.x="gene", by.y="gene")
 	translinks = paste0(trans_link[,2], trans_link[,1])
 	transeqtlids = paste0(result$trans$eqtls[,1], result$trans$eqtls[,2])
 	trans_link = trans_link[translinks %in% transeqtlids,]

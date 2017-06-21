@@ -39,8 +39,8 @@ should be sorted into some order that is meaningful to your experiment
 	m2e = get_m2eqtls(probe_list=system.file("extdata", "PROBELIST.txt", package="M2EFM"), 
 		meth_data=meth, 
 		exp_data=exp,
-		num_trans=550,
-		num_probes=110)
+		num_trans=110,
+		num_probes=550)
 
 	# Load the main clinical data.
 	clin = read.table(system.file("extdata", "TCGA_BRCA_CLIN.txt", package="M2EFM"), 

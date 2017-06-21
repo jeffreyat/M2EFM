@@ -82,6 +82,16 @@ evaluate = function(
 	} else if(gene_type == "pre") {
 		genes = read.table(gene_sig, sep="\t", header=F, row.names=NULL)
 		genes = genes[,1]
+
+		if(integrate_data | intersect_data) {
+			sig = genes
+			genes = sig[1:num_genes]
+			if("MethylationData" %in% class(meth)) {
+				meth = meth$m_values[rownames(meth$m_values) %in% sig,]
+			} else {
+				meth = meth[rownames(meth) %in% sig,]
+			}
+		}
 	} else { # random genes and probes
 		if("ExpressionData" %in% class(exp)) {
 			genes = get_random_genes(exp$values, gene_seed, num_genes)
@@ -207,6 +217,7 @@ evaluate = function(
 	list_of_predcombs = list_of_predcovars = list()
 	list_of_predpam50s = list_of_predpam50combs = list()
 	model_list = nph_list = list()
+	lambda_list = list()
 	genes = df = c()
 
 	# Variable to hold a running average.
@@ -267,14 +278,19 @@ evaluate = function(
 			pred_train = predict(m2efm$initial_model, 
 				data.matrix(train_data),s="lambda.min", type="response")
 		} else {
-			pred_train = predict(m2efm$initial_model, 
-				train_data)$predicted
+			if(type == "cox") {
+				pred_train = predict(m2efm$initial_model, 
+					train_data)$predicted
+			} else {
+				pred_train = predict(m2efm$initial_model, train_data, type="prob")[,1]
+			}
 		}
 
 		# Subset the user supplied risk scores, if present, to those in 
 		# the training data.
 		if(PAM50) {
-			pam50_train = pam50risk[as.character(rownames(pred_train)),,
+			#pam50_train = pam50risk[as.character(rownames(pred_train)),,
+			pam50_train = pam50risk[as.character(rownames(train_data)),,
 				drop=FALSE]
 		}
 
@@ -309,11 +325,23 @@ evaluate = function(
 		# Predict the ridge regression model on the validation data.
 		if(length(val) > 0) {
 			for(j in 1:length(val)) {
-				val_pred[[j]] = predict(m2efm$initial_model, 
-					data.matrix(t(val[[j]])),
-					s="lambda.min", type="response")
-				#val_pred[[j]] = scales::rescale(val_pred[[j]], to=c(1,10))
-				#val_pred[[j]] = val_pred[[j]] * 100
+				if(alpha >= 0) {
+					val_pred[[j]] = predict(m2efm$initial_model, 
+						data.matrix(t(val[[j]])),
+						s="lambda.min", type="response")
+				} else {
+					rownames(val[[j]]) = chartr("-", ".", rownames(val[[j]]))
+					if(type=="cox") {
+						val_pred[[j]] = predict(m2efm$initial_model,
+							data.frame(t(val[[j]])))$predicted
+					} else {
+						rownames(val[[j]]) = chartr("-", ".", rownames(val[[j]]))
+						val_pred[[j]] = predict(m2efm$initial_model, 
+							t(val[[j]]), type="prob")[,1]
+					}
+
+				}
+				
 				if(length(covariates) > 0) {
 					val_test[[j]] = data.frame(pred=val_pred[[j]],
 						val_clin[[j]][colnames(val[[j]]),covariates,
@@ -326,6 +354,7 @@ evaluate = function(
 		# Create a model for PAM50.
 		if(PAM50 && length(covariates) > 0) {
 			pam50_comb_train = cbind(pred=pam50_train[,1], covar_train)
+
 			colnames(pam50_comb_train) = c("pred", covariates)
 
 			vars = paste0(c("pred", covariates), collapse="+")
@@ -344,8 +373,14 @@ evaluate = function(
 			pred = predict(m2efm$initial_model, 
 				data.matrix(test_data[,colnames(train_data)]), s="lambda.min", type="response")
 		} else {
-			pred = predict(m2efm$initial_model,
-				test_data[,colnames(train_data)])$predicted
+			if(type=="cox") {
+				pred = predict(m2efm$initial_model,
+					test_data[,colnames(train_data)])$predicted
+			} else {
+				pred = predict(m2efm$initial_model, 
+					test_data[,colnames(train_data)], type="prob")[,1]
+			}
+			
 		}
 
 		list_of_preds[[i]] = pred
@@ -378,7 +413,8 @@ evaluate = function(
 		
 		if(PAM50) {
 			# We can get the concordance index from the PAM50 ROR directly.
-			pam50_test = pam50risk[as.character(rownames(pred)),,
+			# pam50_test = pam50risk[as.character(rownames(pred)),,
+			pam50_test = pam50risk[as.character(rownames(test_data)),,
 				drop=FALSE]
 
 			if(type == "cox") {
@@ -520,10 +556,11 @@ evaluate = function(
 				outcome_test[,2])
 		} else {
 			pred_roc = AUC::roc(pred, outcome_test)
-			pred_list[[i]] = auc(pred_roc)
+			pred_list[[i]] = 1 - auc(pred_roc)
 		}
 		
 		model_list[[i]] = m2efm$final_model
+		lambda_list[[i]] = m2efm$initial_model$lambda.min
 		
 		# Display the results for each split of the data.
 		if(length(covariates) > 0){
@@ -592,7 +629,8 @@ evaluate = function(
 	}
 
 	evaluate_results = list(
-			pred_res = pred_res)
+			pred_res = pred_res,
+			lambdas = lambda_list)
 	if(length(val) > 0) {
 		evaluate_results = c(evaluate_results, list(
 			iv_pred_res=iv_res_list))
@@ -687,23 +725,34 @@ build_m2efm = function(data, outcome, clin, covariates, standardize=FALSE, alpha
 			nfolds=10, 
 			standardize=standardize, 
 			alpha=alpha)
-
+				
 		# Get hazard scores for data.
 		pred_data = predict(glmfit, data.matrix(data),s="lambda.min", type="response")
 	} else {
 		library(randomForestSRC)
 
-		t_data = data.frame(t(data))
+		#t_data = data.frame(t(data))
 
-		data = cbind(data, time = outcome[,1], status=outcome[,2])
+		if(type == "cox") {
+			data = cbind(data, time = outcome[,1], status=outcome[,2])
 
-		# Build initial model
-		#rffit = rfsrc(Surv(time, status)~., data=data, ntree=1000, na.action="na.impute", splitrule="logrank", nsplit=1, importance="random", seed=-1)
-		rffit = rfsrc(Surv(time, status)~., data=data, ntree=1000, na.action="na.impute", nsplit=1, importance="random", seed=-1)
+			# Build initial model
+			#rffit = rfsrc(Surv(time, status)~., data=data, ntree=1000, na.action="na.impute", splitrule="logrank", nsplit=1, importance="random", seed=-1)
+			if(alpha == -2) {
+				rffit = rfsrc(Surv(time, status)~., data=data, ntree=1000, na.action="na.impute", splitrule="logrank", nsplit=1, importance="random", seed=-1)
+			} else {
+				rffit = rfsrc(Surv(time, status)~., data=data, ntree=1000, na.action="na.impute", nsplit=1, importance="random", seed=-1)
+			}
 
-		# Get hazard scores for data.
-		pred_data = predict(rffit, data)$predicted
+			# Get hazard scores for data.
+			pred_data = predict(rffit, data)$predicted
+			
+		} else {
+			rffit = randomForest(data, outcome, ntree=1000)
 
+			pred_data = predict(rffit, data, type="prob")[,1]
+		}
+		
 		glmfit = rffit
 	}
 
