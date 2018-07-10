@@ -26,7 +26,9 @@ get_m2eqtls = function(
 	num_cis = 1e+10,
 	num_trans = 100,
 	num_probes = 300,
-	treatment_col = "-01"
+	treatment_col = "-01",
+	cc=1e-3
+	tc=1e-10
 ) {
 	# Check for required parameters.
 	if(is.null(probe_list_loc) || is.null(meth_data) || is.null(exp_data)) {
@@ -126,7 +128,9 @@ get_m2eqtls = function(
 		num_cis=num_cis, 
 		num_trans=num_trans, 
 		use_cpg_islands=FALSE, 
-		orderby="beta")
+		orderby="beta",
+		cis_cutoff=cc,
+		trans_cutoff=ct)
 
 	#eqtls = get_eqtls(as.matrix(beta2m(tns)), as.matrix(cbind(exp_cancer[,as.character(colnames(tns))])), probe_locs, gene_locs, num_cis=700, num_trans=700, use_cpg_islands=FALSE, orderby="beta")
 
