@@ -130,7 +130,7 @@ get_m2eqtls = function(
 		use_cpg_islands=FALSE, 
 		orderby="beta",
 		cis_cutoff=cc,
-		trans_cutoff=ct)
+		trans_cutoff=tc)
 
 	#eqtls = get_eqtls(as.matrix(beta2m(tns)), as.matrix(cbind(exp_cancer[,as.character(colnames(tns))])), probe_locs, gene_locs, num_cis=700, num_trans=700, use_cpg_islands=FALSE, orderby="beta")
 
