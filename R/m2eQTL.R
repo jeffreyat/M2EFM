@@ -70,8 +70,6 @@ get_m2eqtls = function(
 
 	if(substr(rownames(exp_cancer)[1], 1, 4) == "ENST") {
 		genes = readRDS(system.file("extdata", "EnsemblTranscripts.RDS", package="M2EFM"))
-		ensembl = useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", GRCh=37)
-		genes = getBM(attributes=c('ensembl_transcript_id','hgnc_symbol','chromosome_name','start_position','end_position'), mart = ensembl)
 		transcripts = substr(rownames(exp_cancer), 1, 15)
 		genes = genes[!duplicated(genes[,1]),]
 		rownames(genes) = genes[,1]
