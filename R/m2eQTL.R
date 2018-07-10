@@ -27,7 +27,7 @@ get_m2eqtls = function(
 	num_trans = 100,
 	num_probes = 300,
 	treatment_col = "-01",
-	cc=1e-3
+	cc=1e-3,
 	tc=1e-10
 ) {
 	# Check for required parameters.
