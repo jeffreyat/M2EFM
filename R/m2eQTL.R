@@ -68,29 +68,39 @@ get_m2eqtls = function(
 	# Filter out unexpressed genes.
 	exp_cancer = mad_filter(exp_data, thres=.05)$values
 
-	entrez_ids = get_entrez_ids(rownames(exp_cancer))
+	if(substr(rownames(exp_cancer)[1], 1, 4) == "ENST") {
+		genes = readRDS(system.file("extdata", "EnsemblTranscripts.RDS", package="M2EFM"))
+		ensembl = useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", GRCh=37)
+		genes = getBM(attributes=c('ensembl_transcript_id','hgnc_symbol','chromosome_name','start_position','end_position'), mart = ensembl)
+		transcripts = substr(rownames(exp_cancer), 1, 15)
+		genes = genes[!duplicated(genes[,1]),]
+		rownames(genes) = genes[,1]
+		exp_cancer = exp_cancer[transcripts %in% rownames(genes),]
+		transcripts = substr(rownames(exp_cancer), 1, 15)
+		genes = genes[,c(1,3,4,5)]
+		colnames(genes) = c("gene", "chrom", "start", "end")
+		genes$chrom = paste0("chr", genes$chrom)
+		head(genes[transcripts,])
+		gene_locs = genes[transcripts,]
+	
+	} else {
+		entrez_ids = get_entrez_ids(rownames(exp_cancer))
+		
+		# Subset expression data to those with entrez ids.
+		exp_cancer = exp_cancer[as.character(entrez_ids[,1]),]
+		
+		# Get table of gene locations.
+		gene_locs = get_gene_locs(as.character(entrez_ids[,2]))
+		gene_locs = unique(gene_locs)
+		
+		complete = entrez_ids[entrez_ids[,1] %in% gene_locs[,1],]
+		
+		gene_locs = gene_locs[gene_locs$gene %in% rownames(exp_cancer),]
+		
+		exp_cancer = exp_cancer[gene_locs$gene,]
+	
+	}
 
-	# Subset expression data to those with entrez ids.
-	exp_cancer = exp_cancer[as.character(entrez_ids[,1]),]
-
-	# Get table of gene locations.
-	gene_locs = get_gene_locs(as.character(entrez_ids[,2]))
-	gene_locs = unique(gene_locs)
-
-	complete = entrez_ids[entrez_ids[,1] %in% gene_locs[,1],]
-
-	gene_locs = gene_locs[gene_locs$gene %in% rownames(exp_cancer),]
-
-	# We won't be able to get annotations for all genes, so figure out which
-	# ones are there.
-	#comp = complete.cases(gene_locs)
-
-	# Cut locations and  expression values down to only those with location
-	# information.
-	#gene_locs = gene_locs[comp,]
-	#exp_cancer = exp_cancer[comp,]
-	#exp_cancer = exp_cancer[complete[,1],]
-	exp_cancer = exp_cancer[gene_locs$gene,]
 
 	# Filter methylation data down to those with differentially
 	# methylated probes from the discovery set, which were passed 
