@@ -25,7 +25,8 @@ get_m2eqtls = function(
 	gene_list = NULL,
 	num_cis = 1e+10,
 	num_trans = 100,
-	num_probes = 300
+	num_probes = 300,
+	treatment_col = "-01"
 ) {
 	# Check for required parameters.
 	if(is.null(probe_list_loc) || is.null(meth_data) || is.null(exp_data)) {
@@ -62,7 +63,7 @@ get_m2eqtls = function(
 	}
 
 	# Keep only tumor samples.
-	exp_data$values = exp_data$values[,grep("-01", colnames(exp_data$values))]
+	exp_data$values = exp_data$values[,grep(treatment_col, colnames(exp_data$values))]
 
 	# Filter out unexpressed genes.
 	exp_cancer = mad_filter(exp_data, thres=.05)$values
@@ -94,7 +95,7 @@ get_m2eqtls = function(
 	# Filter methylation data down to those with differentially
 	# methylated probes from the discovery set, which were passed 
 	# to this routine.
-	diff_probes = meth_data$beta_values[as.character(probe_list),grep("-01", colnames(meth_data$beta_values))]
+	diff_probes = meth_data$beta_values[as.character(probe_list),grep(treatment_col, colnames(meth_data$beta_values))]
 
 	colnames(diff_probes) = substr(colnames(diff_probes),1,15)
 
